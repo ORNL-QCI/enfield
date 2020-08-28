@@ -11,7 +11,7 @@ public:
 
   void Start(BundleContext context) 
   {
-    // TODO
+    context.RegisterService<xacc::IRTransformation>(std::make_shared<xacc::quantum::EnfieldPlacement>());
   }
 
   void Stop(BundleContext context) {}

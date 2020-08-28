@@ -13,6 +13,8 @@ endif()
 
 # Find Xacc
 find_package(XACC REQUIRED)
+# Build the Enfield plugin for XACC
+add_subdirectory(xacc)
 
 set (CMAKE_MODULE_PATH  "${CMAKE_SOURCE_DIR}/cmake")
 # Find JsonCpp
@@ -27,5 +29,4 @@ if (FLEX_HOME)
 endif()
 add_subdirectory (lib)
 
-# Build the VOQC plugin for XACC
-add_subdirectory(xacc)
+

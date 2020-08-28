@@ -1,0 +1,2 @@
+add_xacc_test(EnfieldPlacement)
+target_link_libraries(EnfieldPlacementTester xacc::xacc)

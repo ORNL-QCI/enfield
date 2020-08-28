@@ -10,7 +10,7 @@ public:
   EnfieldPlacement() {}
   void apply(std::shared_ptr<CompositeInstruction> program,
                      const std::shared_ptr<Accelerator> accelerator,
-                     const HeterogeneousMap& options = {}) override {};
+                     const HeterogeneousMap& options = {}) override;
   const IRTransformationType type() const override {return IRTransformationType::Placement;}
 
   const std::string name() const override { return "enfield"; }
