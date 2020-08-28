@@ -10,6 +10,19 @@ Check out the [documentation here!!](https://ysiraichi.github.io/enfield/)
 
 ## Building
 
+Notes: 
+
+- Flex (2.5.XX): Version >= 2.6 is incompatible.   
+
+- Bison: required version > 3.7
+
+To specify Bison and Flex, we can use:
+
+```
+cmake ../ -DJSONCPP_ROOT=<path-to-jsoncpp-libs> -DBISON_EXECUTABLE=<path-to-bison-exe> -DFLEX_EXECUTABLE=<path-to-flex-exe> 
+
+```
+
 Enfield uses CMake. So, in order to build this project, issue the following commands:
 
 ```
