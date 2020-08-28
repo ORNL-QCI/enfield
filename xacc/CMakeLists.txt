@@ -1,3 +1,12 @@
+set (CMAKE_CXX_STANDARD 17)
+
+if (NOT XACC_DIR)
+  set(XACC_DIR "$ENV{HOME}/.xacc")
+endif()
+
+# Find Xacc
+find_package(XACC REQUIRED)
+
 set (LIBRARY_NAME xacc-enfield)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -26,12 +35,8 @@ usFunctionEmbedResources(TARGET ${LIBRARY_NAME}
     manifest.json
     )
 
-target_include_directories(${LIBRARY_NAME} PUBLIC .)
-target_link_libraries(${LIBRARY_NAME} PUBLIC 
-                                        xacc::xacc xacc::quantum_gate  
-                                        EfdArch EfdAllocator EfdBMTImpl EfdSimpleImpl
-                                        EfdTransform EfdAnalysis EfdSupport
-                                        ${JSONCPP_MAIN})
+target_include_directories(${LIBRARY_NAME} PUBLIC . ../executor)
+target_link_libraries(${LIBRARY_NAME} PUBLIC xacc::xacc xacc::quantum_gate efd)
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "-shared")
 set_target_properties(${LIBRARY_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 xacc_configure_plugin_rpath(${LIBRARY_NAME})

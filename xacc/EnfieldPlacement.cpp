@@ -3,6 +3,8 @@
 #include "InstructionIterator.hpp"
 #include <cstdio>
 #include <filesystem>
+#include "EnfieldExecutor.hpp"
+
 namespace xacc
 {
   namespace quantum
@@ -30,6 +32,7 @@ namespace xacc
       std::ofstream inFile(in_fName);
       inFile << src;
       inFile.close();
+      runEnfield(in_fName, out_fName, "A_ibmqx2", "Q_wpm");
     }
   } // namespace quantum
 } // namespace xacc
