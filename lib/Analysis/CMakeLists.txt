@@ -14,3 +14,5 @@ add_library (EfdAnalysis
     ${FLEX_EfdScanner_OUTPUTS}
     ParserHelper.cpp
     NodeVisitor.cpp)
+
+target_compile_options(EfdAnalysis PRIVATE -fPIC)

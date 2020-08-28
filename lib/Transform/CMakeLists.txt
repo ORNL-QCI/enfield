@@ -23,3 +23,4 @@ add_library (EfdTransform
     SemanticVerifierPass.cpp
     Utils.cpp
     XbitToNumberPass.cpp)
+target_compile_options(EfdTransform PRIVATE -fPIC)

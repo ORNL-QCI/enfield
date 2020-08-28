@@ -13,3 +13,5 @@ add_library (EfdSupport
     TokenSwapFinder.cpp
     WeightedGraph.cpp
     WrapperVal.cpp)
+
+target_compile_options(EfdSupport PRIVATE -fPIC)

@@ -4,3 +4,5 @@ add_library (EfdSimpleImpl
     QbitterSolBuilder.cpp
     RandomMappingFinder.cpp
     WeightedSIMappingFinder.cpp)
+
+target_compile_options(EfdSimpleImpl PRIVATE -fPIC)
