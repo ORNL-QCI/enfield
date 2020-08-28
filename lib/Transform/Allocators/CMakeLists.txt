@@ -15,3 +15,5 @@ add_library (EfdAllocator
     OptBMTQAllocator.cpp
     LayeredBMTQAllocator.cpp
     ChallengeWinnerQAllocator.cpp)
+
+target_compile_options(EfdAllocator PRIVATE -fPIC)

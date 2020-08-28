@@ -20,6 +20,7 @@ TEST(TriQPlacementTester, checkSimple)
     auto program = ir->getComposites()[0];
     auto irt = xacc::getIRTransformation("enfield");
     irt->apply(program, nullptr);
+    std::cout << "HOWDY:\n" << program->toString() << "\n";
 }
 
 int main(int argc, char **argv)
