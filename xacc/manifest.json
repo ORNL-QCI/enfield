@@ -1,0 +1,7 @@
+{
+    "bundle.symbolic_name" : "xacc_enfield",
+    "bundle.activator" : true,
+    "bundle.name" : "XACC Enfield Placement",
+    "bundle.description" : "XACC Enfield Placement"
+  }
+  

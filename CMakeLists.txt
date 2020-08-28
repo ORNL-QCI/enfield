@@ -1,39 +1,22 @@
-cmake_minimum_required (VERSION 3.5.1)
+cmake_minimum_required (VERSION 3.13)
 
-project (enfield)
+project (xacc-enfield LANGUAGES C CXX)
+enable_testing()
 
-set (DEFAULT_BUILD_TYPE "Debug")
-set (CMAKE_CXX_FLAGS    "-std=c++11 -Wall")
-set (CMAKE_MODULE_PATH  "${CMAKE_SOURCE_DIR}/cmake")
+set (CMAKE_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-option (ENABLE_TESTS "Enables the tests."       off)
-option (ENABLE_COV   "Enable coverage data."    off)
-
-if (ENABLE_COV)
-    set (COV_FLAGS          "-fprofile-arcs -ftest-coverage")
-    set (CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} ${COV_FLAGS}")
+if (NOT XACC_DIR)
+  set(XACC_DIR "$ENV{HOME}/.xacc")
 endif()
 
-if (NOT CMAKE_BUILD_TYPE)
-    set (CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type." FORCE)
-endif()
+# Find Xacc
+find_package(XACC REQUIRED)
 
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    set (CMAKE_CXX_FLAGS "-O0 -g ${CMAKE_CXX_FLAGS}")
-elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    set (CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
-endif()
-
+# Find JsonCpp
 find_package(JsonCpp REQUIRED)
 include_directories(${JSONCPP_INCLUDE})
 
-include_directories (include)
-
-add_subdirectory (lib)
-add_subdirectory (tools)
-
-if (ENABLE_TESTS)
-    enable_testing ()
-    include (Tests)
-    add_subdirectory (tests)
-endif()
+# Build the VOQC plugin for XACC
+add_subdirectory(xacc)
