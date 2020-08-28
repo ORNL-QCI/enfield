@@ -4,11 +4,29 @@
 #include <iostream>
 
 namespace xacc {
+void initializeEnfield() {
+  static bool initialized = false;
+  if (!initialized) {
+    efd::InitializeAllQbitAllocators();
+    efd::InitializeAllArchitectures();
+    initialized = true;
+  }
+}
+
+bool hasAllocator(const std::string& in_allocatorName) {
+  initializeEnfield();
+  return efd::HasAllocator(in_allocatorName);
+}
+
+bool hasArchitecture(const std::string& in_archName) {
+  initializeEnfield();
+  return efd::HasArchitecture(in_archName);
+}
+
 std::string runEnfield(const std::string &inFilepath,
                        const std::string &archName,
                        const std::string &allocatorName) {
-  efd::InitializeAllQbitAllocators();
-  efd::InitializeAllArchitectures();
+  initializeEnfield();
   std::cout << "In file = " << inFilepath << "\n";
   std::cout << "Arch Name = " << archName << "\n";
   std::cout << "Allocator Name = " << allocatorName << "\n";
