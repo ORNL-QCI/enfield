@@ -1,2 +1,3 @@
 add_xacc_test(EnfieldPlacement)
 target_link_libraries(EnfieldPlacementTester xacc::xacc)
+target_compile_definitions(EnfieldPlacementTester PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
