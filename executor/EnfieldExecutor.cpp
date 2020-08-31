@@ -13,19 +13,19 @@ void initializeEnfield() {
   }
 }
 
-bool hasAllocator(const std::string& in_allocatorName) {
+bool hasAllocator(const std::string &in_allocatorName) {
   initializeEnfield();
   return efd::HasAllocator(in_allocatorName);
 }
 
-bool hasArchitecture(const std::string& in_archName) {
+bool hasArchitecture(const std::string &in_archName) {
   initializeEnfield();
   return efd::HasArchitecture(in_archName);
 }
 
 std::string runEnfield(const std::string &inFilepath,
                        const std::string &archName,
-                       const std::string &allocatorName) {
+                       const std::string &allocatorName, bool in_jsonArch) {
   initializeEnfield();
   // std::cout << "In file = " << inFilepath << "\n";
   // std::cout << "Arch Name = " << archName << "\n";
@@ -34,8 +34,13 @@ std::string runEnfield(const std::string &inFilepath,
   if (inputQModule) {
     // Debug: print input circuit
     // inputQModule->print();
-    if (efd::HasArchitecture(archName)) {
-      efd::ArchGraph::sRef archGraph = efd::CreateArchitecture(archName);
+    if (in_jsonArch || efd::HasArchitecture(archName)) {
+      if (in_jsonArch) {
+        std::cout << "Json:\n" << archName << "\n";
+      }
+      efd::ArchGraph::sRef archGraph =
+          in_jsonArch ? efd::JsonParser<efd::ArchGraph>::ParseString(archName)
+                      : efd::CreateArchitecture(archName);
       efd::CompilationSettings settings{
           archGraph, allocatorName, {{"U", 1}, {"CX", 10}}, false, true, false};
       inputQModule.reset(

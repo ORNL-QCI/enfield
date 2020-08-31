@@ -1,9 +1,51 @@
 #include "EnfieldPlacement.hpp"
 #include "EnfieldExecutor.hpp"
 #include "InstructionIterator.hpp"
+#include "json.hpp"
 #include "xacc.hpp"
 #include <cstdio>
 
+namespace {
+size_t
+getNumberQubits(const std::vector<std::pair<int, int>> &in_connectivity) {
+  size_t result = 1;
+  for (const auto &[q1, q2] : in_connectivity) {
+    if (q1 + 1 > result) {
+      result = q1 + 1;
+    }
+    if (q2 + 1 > result) {
+      result = q2 + 1;
+    }
+  }
+
+  return result;
+}
+
+std::string connectivityToArchJson(
+    const std::vector<std::pair<int, int>> &in_connectivity) {
+  const auto nbQubits = getNumberQubits(in_connectivity);
+  nlohmann::json arch;
+  arch["qubits"] = nbQubits;
+  nlohmann::json qReg;
+  qReg["name"] = "q";
+  qReg["qubits"] = nbQubits;
+  arch["registers"] = std::vector<nlohmann::json>{qReg};
+  std::vector<std::vector<nlohmann::json>> adjList(nbQubits);
+  for (size_t qId = 0; qId < nbQubits; ++qId) {
+    auto &vertexList = adjList[qId];
+    for (const auto &[q1, q2] : in_connectivity) {
+      if (q1 == qId) {
+        nlohmann::json vertex;
+        const std::string fullName = "q[" + std::to_string(q2) + "]";
+        vertex["v"] = fullName;
+        vertexList.emplace_back(vertex);
+      }
+    }
+  }
+  arch["adj"] = adjList;
+  return arch.dump();
+}
+} // namespace
 namespace xacc {
 namespace quantum {
 void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
@@ -18,15 +60,26 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
     }
   }
 
-  std::string archName = "A_ibmqx2";
-  // TODO: use the Accelerator instance to construct this.
-  if (options.stringExists("architecture")) {
-    archName = options.getString("architecture");
-    if (!hasArchitecture(archName)) {
-      xacc::error("Architecture named '" + archName + "' does not exist.");
+  // Archname or Json
+  const bool useArchJson = (accelerator && !accelerator->getConnectivity().empty());
+  const std::string archName = [&]() -> std::string {
+    if (useArchJson) {
+      return connectivityToArchJson(accelerator->getConnectivity());
     }
-  }
+    if (options.stringExists("architecture")) {
+      const auto name = options.getString("architecture");
+      if (!hasArchitecture(name)) {
+        xacc::error("Architecture named '" + name + "' does not exist.");
+      }
+      return name;
+    }
+    return "";
+  }();
 
+  // No architecture to do mapping.
+  if (archName.empty()) {
+    return;
+  }
   // (1) Use Staq to translate the program to OpenQASM
   auto staq = xacc::getCompiler("staq");
   const auto src = staq->translate(program);
@@ -37,12 +90,11 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
   if (mkstemp(inTemplate) == -1) {
     xacc::error("Failed to create temporary files.");
   }
-
   const std::string in_fName(inTemplate);
   std::ofstream inFile(in_fName);
   inFile << src;
   inFile.close();
-  const auto outputCirq = runEnfield(in_fName, archName, allocatorName);
+  const auto outputCirq = runEnfield(in_fName, archName, allocatorName, useArchJson);
   // Use Staq to re-compile the output file.
   auto ir = staq->compile(outputCirq);
   // reset the program and add optimized instructions

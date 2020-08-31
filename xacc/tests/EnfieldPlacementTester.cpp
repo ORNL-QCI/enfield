@@ -85,6 +85,27 @@ TEST(TriQPlacementTester, testAll)
   }
 }
 
+// Check automatic connectivity data
+TEST(TriQPlacementTester, checkRemote) {
+  // Use a specific IBMQ backend
+  auto accelerator = xacc::getAccelerator("aer:ibmq_16_melbourne");
+  auto buffer = xacc::qalloc(3);
+  auto xasmCompiler = xacc::getCompiler("xasm");
+  auto ir = xasmCompiler->compile(R"(__qpu__ void bell(qbit q) {
+      H(q[0]);
+      CX(q[0], q[1]);
+      CX(q[0], q[2]);
+      Measure(q[0]);
+      Measure(q[1]);
+      Measure(q[2]);
+})",
+                                  accelerator);
+  auto program = ir->getComposites()[0];
+  auto irt = xacc::getIRTransformation("enfield");
+  irt->apply(program, accelerator);
+  std::cout << "HOWDY:\n" << program->toString() << "\n";
+}
+
 int main(int argc, char **argv)
 {
     xacc::Initialize(argc, argv);
