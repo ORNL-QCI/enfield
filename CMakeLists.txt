@@ -8,6 +8,10 @@ set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 set (CMAKE_MODULE_PATH  "${CMAKE_SOURCE_DIR}/cmake")
+if (NOT JSONCPP_ROOT)
+  set(JSONCPP_ROOT "$ENV{HOME}/.jsoncpp")
+endif()
+
 # Find JsonCpp
 find_package(JsonCpp REQUIRED)
 # Build Enfield Libs

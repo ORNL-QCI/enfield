@@ -3,7 +3,6 @@
 #include "InstructionIterator.hpp"
 #include "xacc.hpp"
 #include <cstdio>
-#include <filesystem>
 
 namespace xacc {
 namespace quantum {
