@@ -104,6 +104,26 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
 
   // Clean-up the temporary files.
   remove(in_fName.c_str());
+
+  const auto mappingToString = [](const std::vector<uint32_t> &in_mapping) {
+    std::string s = "[";
+    for (uint32_t i = 0, e = in_mapping.size(); i < e; ++i) {
+      s = s + std::to_string(i) + " => ";
+      s = s + std::to_string(in_mapping[i]);
+      s = s + ";";
+      if (i != e - 1) {
+        s = s + " ";
+      }
+    }
+    s = s + "]";
+    return s;
+  };
+  // Write mapping to file:
+  if (options.stringExists("map-file")) {
+    std::ofstream mappingFile(options.getString("map-file"));
+    mappingFile << mappingToString(resultMapping);
+    mappingFile.close();
+  }
 }
 } // namespace quantum
 } // namespace xacc
