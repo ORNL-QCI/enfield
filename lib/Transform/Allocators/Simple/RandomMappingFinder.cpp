@@ -27,7 +27,9 @@ efd::RandomMappingFinder::find(ArchGraph::Ref g, DepsVector& deps) {
 
     // "Generating" the initial mapping.
     SeedStat = Seed.getVal();
-    std::random_shuffle(mapping.begin(), mapping.end(), rnd);
+    std::random_device rd;  
+    std::mt19937 gen(rd()); 
+    std::shuffle(mapping.begin(), mapping.end(), gen);
 
     return mapping;
 }
