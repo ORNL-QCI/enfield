@@ -15,6 +15,10 @@ namespace efd {
         bool reorder;
         bool verify;
         bool force;
+        // XACC-BEGIN
+        // Cache mapping result after running the Allocator driver
+        efd::Mapping* cacheMappingResult;
+        // XACC-END
     };
 
     /// \brief Compile \p qmod, and return the compiled version.

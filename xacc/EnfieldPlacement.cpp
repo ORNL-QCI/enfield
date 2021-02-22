@@ -94,7 +94,8 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
   std::ofstream inFile(in_fName);
   inFile << src;
   inFile.close();
-  const auto outputCirq = runEnfield(in_fName, archName, allocatorName, useArchJson);
+  std::vector<uint32_t> resultMapping;
+  const auto outputCirq = runEnfield(in_fName, archName, allocatorName, resultMapping, useArchJson);
   // Use Staq to re-compile the output file.
   auto ir = staq->compile(outputCirq);
   // reset the program and add optimized instructions

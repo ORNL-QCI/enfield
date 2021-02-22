@@ -46,7 +46,7 @@ QModule::uRef efd::Compile(QModule::uRef qmod, CompilationSettings settings) {
     auto allocPass = CreateQbitAllocator(settings.allocator, settings.archGraph);
     allocPass->setGateWeightMap(settings.gWeightMap);
     PassCache::Run(qmod.get(), allocPass.get());
-
+    *(settings.cacheMappingResult) = allocPass->getData();
     auto revPass = ReverseEdgesPass::Create(settings.archGraph);
     PassCache::Run(qmod.get(), revPass.get());
 

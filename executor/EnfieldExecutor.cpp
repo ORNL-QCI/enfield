@@ -25,7 +25,8 @@ bool hasArchitecture(const std::string &in_archName) {
 
 std::string runEnfield(const std::string &inFilepath,
                        const std::string &archName,
-                       const std::string &allocatorName, bool in_jsonArch) {
+                       const std::string &allocatorName,
+                       std::vector<uint32_t> &out_mapping, bool in_jsonArch) {
   initializeEnfield();
   // std::cout << "In file = " << inFilepath << "\n";
   // std::cout << "Arch Name = " << archName << "\n";
@@ -41,13 +42,16 @@ std::string runEnfield(const std::string &inFilepath,
       efd::ArchGraph::sRef archGraph =
           in_jsonArch ? efd::JsonParser<efd::ArchGraph>::ParseString(archName)
                       : efd::CreateArchitecture(archName);
+      efd::Mapping cacheResultMap;
       efd::CompilationSettings settings{
-          archGraph, allocatorName, {{"U", 1}, {"CX", 10}}, false, true, false};
+          archGraph, allocatorName, {{"U", 1}, {"CX", 10}}, false,
+          true,      false,         &cacheResultMap};
       inputQModule.reset(
           efd::Compile(std::move(inputQModule), settings).release());
       if (inputQModule) {
         std::stringstream outputCircuit;
         inputQModule->print(outputCircuit);
+        out_mapping = cacheResultMap;
         return outputCircuit.str();
       }
     } else {
