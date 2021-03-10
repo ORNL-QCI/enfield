@@ -119,4 +119,22 @@ std::string efd::Stat<T>::toString() const {
     return s;
 }
 
+// Specialize for string Stat
+template <>
+inline std::string efd::Stat<std::string>::toString() const {
+    std::string s;
+
+    s += mVal + "::";
+    s += mName + "::";
+    s += mDescription;
+    return s;
+}
+template <>
+inline bool efd::Stat<std::string>::isZero() const {
+   return mVal.empty();
+}
+
+template <>
+inline efd::Stat<std::string>::Stat(std::string name, std::string description)
+    : StatBase(name, description) {}
 #endif

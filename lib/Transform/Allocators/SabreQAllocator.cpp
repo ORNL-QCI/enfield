@@ -24,6 +24,9 @@ static Opt<uint32_t> Iterations
 Stat<uint32_t> Swaps
 ("Swaps", "Number of swaps found.");
 
+static Stat<std::string> SwapPairs
+("SwapPairs", "Swap pairs found.");
+
 SabreQAllocator::SabreQAllocator(ArchGraph::sRef ag)
     : QbitAllocator(ag) {}
 
@@ -194,6 +197,10 @@ SabreQAllocator::allocateWithInitialMapping(const Mapping& initialMapping,
         std::swap(mapping[invM[swap.u]], mapping[invM[swap.v]]);
 
         if (issueInstructions) {
+            // std::cout << "Add SWAP: " << swap.u << " <--> " << swap.v << "\n";
+            std::stringstream ss;
+            ss << "(" << swap.u << "," << swap.v << ")";
+            SwapPairs += ss.str();
             newStatements.push_back(
                     CreateISwap(mArchGraph->getNode(swap.u)->clone(),
                                 mArchGraph->getNode(swap.v)->clone()));
@@ -260,6 +267,7 @@ Mapping SabreQAllocator::allocate(QModule::Ref qmod) {
         }
     }
 
+    SwapPairs = "";
     auto r = allocateWithInitialMapping(best.first, qmod, true);
     Swaps = r.second;
 

@@ -52,6 +52,9 @@ std::string runEnfield(const std::string &inFilepath,
         std::stringstream outputCircuit;
         inputQModule->print(outputCircuit);
         out_mapping = cacheResultMap;
+        std::ofstream statOutfile;
+        statOutfile.open("stat_file.dat");
+        efd::PrintStats(statOutfile);
         return outputCircuit.str();
       }
     } else {
