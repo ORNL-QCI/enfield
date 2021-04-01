@@ -13,6 +13,12 @@ std::chrono::system_clock::now().time_since_epoch().count(), false);
 static Opt<uint32_t> Trials
 ("trials", "Number of times that IBMQAllocator should try.", 20, false);
 
+namespace {
+using namespace efd;
+Stat<uint32_t> Swaps("Swaps_ibm", "Number of swaps found.");
+static Stat<std::string> SwapPairs("SwapPairs_ibm", "Swap pairs found.");
+} // namespace
+
 IBMQAllocator::IBMQAllocator(ArchGraph::sRef archGraph) : StdSolutionQAllocator(archGraph) {}
 
 IBMQAllocator::uRef IBMQAllocator::Create(ArchGraph::sRef archGraph) {

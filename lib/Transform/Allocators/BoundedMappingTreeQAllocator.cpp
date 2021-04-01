@@ -15,6 +15,12 @@
 using namespace efd;
 using namespace bmt;
 
+namespace {
+using namespace efd;
+Stat<uint32_t> Swaps("Swaps_bmt", "Number of swaps found.");
+static Stat<std::string> SwapPairs("SwapPairs_bmt", "Swap pairs found.");
+} // namespace
+
 static Opt<uint32_t> MaxChildren
 ("-bmt-max-children", "Limits the max number of children per partial solution.",
  std::numeric_limits<uint32_t>::max(), false);
@@ -494,6 +500,10 @@ Mapping BoundedMappingTreeQAllocator::phase3(QModule::Ref qmod, const MappingSwa
                     }
                     issuedInstructions.push_back(CreateISwap(mArchGraph->getNode(u)->clone(),
                                                              mArchGraph->getNode(v)->clone()));
+                    std::stringstream ss;
+                    ss << "(" << swp.u << "," << swp.v << ")";
+                    SwapPairs += ss.str();
+                    Swaps += 1;
                 }
 
                 u = mapping[a];
@@ -564,6 +574,9 @@ Mapping BoundedMappingTreeQAllocator::allocate(QModule::Ref qmod) {
 
     uint32_t nofDeps = mDBuilder.getDependencies().size();
     auto initialMapping = IdentityMapping(mPQubits);
+
+    Swaps = 0;
+    SwapPairs = "";
 
     if (nofDeps > 0) {
         Timer tPhase1, tPhase2, tPhase3;

@@ -9,6 +9,12 @@
 using namespace efd;
 using namespace jku;
 
+namespace {
+using namespace efd;
+Stat<uint32_t> Swaps("Swaps_jku", "Number of swaps found.");
+static Stat<std::string> SwapPairs("SwapPairs_jku", "Swap pairs found.");
+} // namespace
+
 namespace efd {
 namespace jku {
 
@@ -287,7 +293,8 @@ AStarNode JKUQAllocator::astar(std::queue<uint32_t>& cnotLayersIdQ,
 
 Mapping JKUQAllocator::allocate(QModule::Ref qmod) {
     buildCostTable();
-
+    Swaps = 0;
+    SwapPairs = "";
     auto layers = PassCache::Get<LayersBuilderPass>(qmod)->getData();
     mDBuilder = PassCache::Get<DependencyBuilderWrapperPass>(qmod)->getData();
     auto& xbitToN = mDBuilder.getXbitToNumber();
@@ -322,6 +329,10 @@ Mapping JKUQAllocator::allocate(QModule::Ref qmod) {
             for (const auto& s : aNode.swaps) {
                 newStatements.push_back(CreateISwap(mArchGraph->getNode(s.u)->clone(),
                                                     mArchGraph->getNode(s.v)->clone()));
+                std::stringstream ss;
+                ss << "(" << s.u << "," << s.v << ")";
+                SwapPairs += ss.str();
+                Swaps += 1;
             }
         }
 

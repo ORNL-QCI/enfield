@@ -4,11 +4,16 @@
 #include "enfield/Transform/Utils.h"
 #include "enfield/Transform/PassCache.h"
 #include "enfield/Support/Defs.h"
+#include "enfield/Support/Stats.h"
 
 #include <algorithm>
 #include <numeric>
 #include <queue>
-
+namespace {
+using namespace efd;
+Stat<uint32_t> Swaps("Swaps_chw", "Number of swaps found.");
+static Stat<std::string> SwapPairs("SwapPairs_chw", "Swap pairs found.");
+} // namespace
 namespace efd {
 namespace chw {
 
@@ -146,6 +151,9 @@ Mapping ChallengeWinnerQAllocator::allocate(QModule::Ref qmod) {
     std::vector<UIntPair> appliedGates;
     std::set<UIntPair> freeSwaps;
     SwapSeq swapSequence;
+
+    SwapPairs = "";
+    Swaps = 0;
 
     while (true) {
         std::set<CircuitGraph::CircuitNode::sRef> allocatable;
@@ -285,6 +293,10 @@ Mapping ChallengeWinnerQAllocator::allocate(QModule::Ref qmod) {
             allocatedStatements.push_back(
                     CreateISwap(mArchGraph->getNode(swap.u)->clone(),
                                 mArchGraph->getNode(swap.v)->clone()));
+            Swaps += 1;
+            std::stringstream ss;
+            ss << "(" << swap.u << "," << swap.v << ")";
+            SwapPairs += ss.str();
 
             uint32_t a = inverse[swap.u];
             uint32_t b = inverse[swap.v];
