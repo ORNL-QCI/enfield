@@ -7,6 +7,12 @@
 #include "enfield/Support/RTTI.h"
 #include "enfield/Support/uRefCast.h"
 
+namespace {
+using namespace efd;
+static Stat<uint32_t> Swaps("Swaps_std", "Number of swaps found.");
+static Stat<std::string> SwapPairs("SwapPairs_std", "Swap pairs found.");
+} // namespace
+
 using namespace efd;
 
 // ------------------ StdSolution Implementer ----------------------
@@ -89,6 +95,12 @@ void efd::StdSolutionImplPass::applyOperations(NDQOp::Ref qop, NDIfStmt::Ref ifs
                     mReplVector[key].push_back(
                             efd::CreateISwap(mMap[op.mU]->clone(), mMap[op.mV]->clone()));
                     std::swap(mMap[op.mU], mMap[op.mV]);
+                    {
+                      std::stringstream ss;
+                      ss << "(" << op.mU << "," << op.mV << ")";
+                      SwapPairs += ss.str();
+                      Swaps += 1;
+                    }
                     break;
 
                 case Operation::K_OP_REV:
@@ -182,6 +194,8 @@ StdSolutionQAllocator::StdSolutionQAllocator(ArchGraph::sRef archGraph)
     : QbitAllocator(archGraph) {}
 
 Mapping StdSolutionQAllocator::allocate(QModule::Ref qmod) {
+    Swaps = 0;
+    SwapPairs = "";
     auto stdSolution = buildStdSolution(qmod);
     StdSolutionImplPass pass(stdSolution);
     PassCache::Run(qmod, &pass);
