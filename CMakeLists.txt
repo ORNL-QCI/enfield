@@ -22,6 +22,12 @@ include_directories (include)
 if (FLEX_HOME)
     include_directories("${FLEX_HOME}")
 endif()
+
+option(XACC_ENABLE_EFD_INFO_LOG "Info logging" OFF)
+if (XACC_ENABLE_EFD_INFO_LOG)
+  add_definitions(-DXACC_ENABLE_EFD_INFO_LOG)
+endif()
+
 add_subdirectory (lib)
 add_subdirectory (executor)
 add_subdirectory (xacc)

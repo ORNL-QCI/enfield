@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #define EFD_PREFIX_COLOR "\e[38;5;"
 #define EFD_RESET_COLOR "\e[0m"
@@ -69,7 +70,13 @@ void PrintMessage(std::ostream& out,
 
 EFD_IMPLEMENT_LOG(ErrorLog, "ERROR", ErrorFile, std::cerr, 9)
 EFD_IMPLEMENT_LOG(WarningLog, "WARNING", WarningFile, std::cout, 3)
+#ifndef XACC_ENABLE_EFD_INFO_LOG
+static std::stringstream ignored_log;
+EFD_IMPLEMENT_LOG(InfoLog, "INFO", InfoFile, ignored_log, 2)
+#else
+// Only log to std::cout if requested.
 EFD_IMPLEMENT_LOG(InfoLog, "INFO", InfoFile, std::cout, 2)
+#endif
 
 void efd::InitializeLogs() {
     InitializeErrorLog();
