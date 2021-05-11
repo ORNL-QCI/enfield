@@ -1,7 +1,15 @@
 #include "EnfieldExecutor.hpp"
 #include "enfield/Transform/Driver.h"
 #include "enfield/Transform/QModule.h"
+#include "enfield/Transform/QModuleQualityEvalPass.h"
+#include "enfield/Transform/InlineAllPass.h"
+#include "enfield/Transform/ReverseEdgesPass.h"
 #include <iostream>
+
+namespace {
+static efd::Stat<uint32_t> Depth("Depth",
+                                 "Total depth after allocating the qubits.");
+}
 
 namespace xacc {
 void initializeEnfield() {
@@ -52,6 +60,23 @@ std::string runEnfield(const std::string &inFilepath,
         std::stringstream outputCircuit;
         inputQModule->print(outputCircuit);
         out_mapping = cacheResultMap;
+
+        // Compute depth stats before printing...
+        efd::GateWeightMap GateWeights = {{"U", 1}, {"CX", 10}};
+        efd::InlineAllPass inlinePass(efd::ExtractGateNames(GateWeights));
+        auto reversePass = efd::ReverseEdgesPass::Create(archGraph);
+        efd::QModuleQualityEvalPass qualityPass(GateWeights);
+        inlinePass.run(inputQModule.get());
+        reversePass->run(inputQModule.get());
+        inlinePass.run(inputQModule.get());
+        qualityPass.run(inputQModule.get());
+        auto &quality = qualityPass.getData();
+        Depth = quality.mDepth;
+        // auto Gates = quality.mGates;
+        // std::cout << "Depth: " << Depth << "; Gates: " << Gates << "\n";
+        // std::stringstream outputCircuit1;
+        // inputQModule->print(outputCircuit1);
+        // std::cout << "AGAIN:\n" << outputCircuit1.str() << "\n";
         std::ofstream statOutfile;
         statOutfile.open("stat_file.dat");
         efd::PrintStats(statOutfile);
