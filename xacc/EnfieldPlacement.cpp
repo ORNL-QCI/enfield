@@ -45,6 +45,50 @@ std::string connectivityToArchJson(
   arch["adj"] = adjList;
   return arch.dump();
 }
+
+void optimize_gate_sequence(
+    std::shared_ptr<xacc::CompositeInstruction> program) {
+  auto graphView = program->toGraph();
+  std::vector<int> consecutive_cnot_nodes;
+  for (int i = 1; i < graphView->order() - 2; i++) {
+    auto node = graphView->getVertexProperties(i);
+    if (node.getString("name") == "CNOT" &&
+        program->getInstruction(node.get<std::size_t>("id") - 1)->isEnabled()) {
+      consecutive_cnot_nodes.emplace_back(i);
+
+      const auto is_next_node_cnot = [&graphView, &program](size_t node_id) {
+        auto nAsVec = graphView->getNeighborList(node_id);
+        if (nAsVec[0] == nAsVec[1] && nAsVec[0] != graphView->order() - 1 &&
+            program->getInstruction(nAsVec[0] - 1)->name() == "CNOT") {
+          return true;
+        }
+        return false;
+      };
+
+      auto node_to_check = node.get<std::size_t>("id");
+      for (int j = 0; j < 3; ++i) {
+        if (is_next_node_cnot(node_to_check)) {
+          assert(graphView->getNeighborList(node_to_check).size() == 2);
+          assert(graphView->getNeighborList(node_to_check)[0] ==
+                 graphView->getNeighborList(node_to_check)[1]);
+          node_to_check = graphView->getNeighborList(node_to_check)[0];
+          consecutive_cnot_nodes.emplace_back(node_to_check);
+        } else {
+          consecutive_cnot_nodes.clear();
+          break;
+        }
+      }
+
+      if (consecutive_cnot_nodes.size() == 4) {
+        std::cout << "Found CNOT sequence:\n";
+        for (const auto &id : consecutive_cnot_nodes) {
+          std::cout << program->getInstruction(id - 1)->toString() << "\n";
+        }
+      }
+      consecutive_cnot_nodes.clear();
+    }
+  }
+}
 } // namespace
 namespace xacc {
 namespace quantum {
@@ -101,7 +145,11 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
   // reset the program and add optimized instructions
   program->clear();
   program->addInstructions(ir->getComposites()[0]->getInstructions());
-
+  // switch the order of SWAP decompose to reduce
+  // gate depth:
+  // e.g. CX 1,2; CX 2,1; CX 1,2 <==> CX 2,1; CX 1,2; CX 2,1
+  // this can help cancel a CX 2,1 if exists.
+  optimize_gate_sequence(program);
   // Clean-up the temporary files.
   remove(in_fName.c_str());
 
