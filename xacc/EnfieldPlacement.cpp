@@ -46,11 +46,11 @@ std::string connectivityToArchJson(
   return arch.dump();
 }
 
-void optimize_gate_sequence(
+void move_qaoa_evol_to_swap(
     std::shared_ptr<xacc::CompositeInstruction> program) {
-  auto graphView = program->toGraph();
   std::vector<int> consecutive_cnot_nodes;
-  for (int i = 1; i < graphView->order() - 2; i++) {
+  for (int i = 1; i < program->toGraph()->order() - 2; i++) {
+    auto graphView = program->toGraph();
     auto node = graphView->getVertexProperties(i);
     if (node.getString("name") == "CNOT" &&
         program->getInstruction(node.get<std::size_t>("id") - 1)->isEnabled()) {
@@ -58,15 +58,20 @@ void optimize_gate_sequence(
 
       const auto is_next_node_cnot = [&graphView, &program](size_t node_id) {
         auto nAsVec = graphView->getNeighborList(node_id);
+        // std::cout << "Neighbor: " << program->getInstruction(nAsVec[0] - 1)->toString() << "\n";
         if (nAsVec[0] == nAsVec[1] && nAsVec[0] != graphView->order() - 1 &&
             program->getInstruction(nAsVec[0] - 1)->name() == "CNOT") {
+          // std::cout << "Is CNOT...\n";
           return true;
         }
         return false;
       };
-
+      // std::cout << "CNOT: "
+      //           << program->getInstruction(node.get<std::size_t>("id") - 1)
+      //                  ->toString()
+      //           << "\n";
       auto node_to_check = node.get<std::size_t>("id");
-      for (int j = 0; j < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
         if (is_next_node_cnot(node_to_check)) {
           assert(graphView->getNeighborList(node_to_check).size() == 2);
           assert(graphView->getNeighborList(node_to_check)[0] ==
@@ -74,20 +79,95 @@ void optimize_gate_sequence(
           node_to_check = graphView->getNeighborList(node_to_check)[0];
           consecutive_cnot_nodes.emplace_back(node_to_check);
         } else {
-          consecutive_cnot_nodes.clear();
           break;
         }
       }
 
-      if (consecutive_cnot_nodes.size() == 4) {
-        std::cout << "Found CNOT sequence:\n";
-        for (const auto &id : consecutive_cnot_nodes) {
-          std::cout << program->getInstruction(id - 1)->toString() << "\n";
+      if (consecutive_cnot_nodes.size() == 3) {
+        // std::cout << "Found CNOT sequence:\n";
+        auto cx = program->getInstruction(consecutive_cnot_nodes[0] - 1);
+        auto last_swap_cx = program->getInstruction(consecutive_cnot_nodes[2] - 1);
+        const std::pair<size_t, size_t> swap_qubits =
+            std::make_pair(cx->bits()[0], cx->bits()[1]);
+        // for (const auto &id : consecutive_cnot_nodes) {
+        //   std::cout << program->getInstruction(id - 1)->toString() << "\n";
+        // }
+        
+        // Collect the sequence of gates from a previos CNOT to this swap:
+        std::vector<size_t> cx_pair_inst_idxs;
+        for (int inst_id = 0; inst_id < consecutive_cnot_nodes[0]; ++inst_id) {
+          auto inst_ptr = program->getInstruction(inst_id);
+          if (inst_ptr->name() == "CNOT" &&
+              inst_ptr->bits()[0] == swap_qubits.second &&
+              inst_ptr->bits()[1] == swap_qubits.first) {
+            // std::cout << "Found instruction: " << inst_ptr->toString() << "\n";
+            cx_pair_inst_idxs.emplace_back(inst_id);
+          }
+        }
+
+        if (cx_pair_inst_idxs.size() == 2) {
+          // std::vector<std::shared_ptr<xacc::Instruction>> to_swap_inst;
+          for (int test_node = cx_pair_inst_idxs[1] + 1;
+               test_node < consecutive_cnot_nodes[0]; ++test_node) {
+            auto test_inst = program->getInstruction(test_node - 1);
+            if (test_inst->bits().size() == 1 &&
+                test_inst->bits()[0] == swap_qubits.second) {
+              // std::cout << "TO SWAP: " << test_inst->toString() << "\n";
+              // to_swap_inst.emplace_back(test_inst->clone());
+              // test_inst->disable();
+              auto new_inst = test_inst->clone();
+              new_inst->setBits({swap_qubits.first});
+              program->insertInstruction(consecutive_cnot_nodes[2], new_inst);
+              test_inst->disable();
+            }
+          }
+
+          // last_swap_cx->disable();
+          auto first_cx_node = cx_pair_inst_idxs[0] + 1;
+          auto neighbor_gates = program->toGraph()->getNeighborList(first_cx_node);
+          assert(neighbor_gates.size() == 2);
+          assert(neighbor_gates[0] == cx_pair_inst_idxs[1] + 1 ||
+                 neighbor_gates[1] == cx_pair_inst_idxs[1] + 1);
+          if (neighbor_gates[0] == cx_pair_inst_idxs[1] + 1) {
+            auto rot_gate_id = neighbor_gates[1];
+            // std::cout << "Internal gate: " << program->getInstruction(rot_gate_id - 1)->toString() << "\n";
+            auto first_cx = program->getInstruction(cx_pair_inst_idxs[0])->clone();
+            auto second_cx = program->getInstruction(cx_pair_inst_idxs[1])->clone();
+            auto rot_gate = program->getInstruction(rot_gate_id - 1)->clone();
+            assert(first_cx->name() == "CNOT");
+            assert(second_cx->name() == "CNOT");
+            assert(first_cx->bits() == second_cx->bits());
+            program->getInstruction(cx_pair_inst_idxs[0])->disable();
+            program->getInstruction(cx_pair_inst_idxs[1])->disable();
+            program->getInstruction(rot_gate_id - 1)->disable();
+            // Move to next to the swap:
+            program->insertInstruction(consecutive_cnot_nodes[0] - 1, first_cx); 
+            program->insertInstruction(consecutive_cnot_nodes[0] - 1, rot_gate); 
+            program->insertInstruction(consecutive_cnot_nodes[0] - 1, second_cx); 
+          }
+          else {
+            auto rot_gate_id = neighbor_gates[0];
+            // std::cout << "Internal gate: " << program->getInstruction(rot_gate_id - 1)->toString() << "\n";
+            auto first_cx = program->getInstruction(cx_pair_inst_idxs[0])->clone();
+            auto second_cx = program->getInstruction(cx_pair_inst_idxs[1])->clone();
+            auto rot_gate = program->getInstruction(rot_gate_id - 1)->clone();
+            assert(first_cx->name() == "CNOT");
+            assert(second_cx->name() == "CNOT");
+            assert(first_cx->bits() == second_cx->bits());
+            program->getInstruction(cx_pair_inst_idxs[0])->disable();
+            program->getInstruction(cx_pair_inst_idxs[1])->disable();
+            program->getInstruction(rot_gate_id - 1)->disable();
+            // Move to next to the swap:
+            program->insertInstruction(consecutive_cnot_nodes[0] - 1, first_cx); 
+            program->insertInstruction(consecutive_cnot_nodes[0] - 1, rot_gate); 
+            program->insertInstruction(consecutive_cnot_nodes[0] - 1, second_cx); 
+          }
         }
       }
       consecutive_cnot_nodes.clear();
     }
   }
+  program->removeDisabled();
 }
 } // namespace
 namespace xacc {
@@ -140,6 +220,7 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
   inFile.close();
   std::vector<uint32_t> resultMapping;
   const auto outputCirq = runEnfield(in_fName, archName, allocatorName, resultMapping, useArchJson);
+  // std::cout << outputCirq << "\n";
   // Use Staq to re-compile the output file.
   auto ir = staq->compile(outputCirq);
   // reset the program and add optimized instructions
@@ -149,7 +230,7 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
   // gate depth:
   // e.g. CX 1,2; CX 2,1; CX 1,2 <==> CX 2,1; CX 1,2; CX 2,1
   // this can help cancel a CX 2,1 if exists.
-  optimize_gate_sequence(program);
+  move_qaoa_evol_to_swap(program);
   // Clean-up the temporary files.
   remove(in_fName.c_str());
 
