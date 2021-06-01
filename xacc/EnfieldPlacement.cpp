@@ -46,6 +46,37 @@ std::string connectivityToArchJson(
   return arch.dump();
 }
 
+void remove_cx_pairs(std::shared_ptr<xacc::CompositeInstruction> program) {
+  // std::cout << "Before: \n" << program->toString() << "\n";
+  auto graphView = program->toGraph();
+  for (int i = 1; i < graphView->order() - 2; i++) {
+    auto node = graphView->getVertexProperties(i);
+    if (node.getString("name") == "CNOT" &&
+        program->getInstruction(node.get<std::size_t>("id") - 1)->isEnabled()) {
+      auto nAsVec = graphView->getNeighborList(node.get<std::size_t>("id"));
+      // std::vector<int> nAsVec(neighbors.begin(), neighbors.end());
+      // Note: There is an edge-case if the CNOT is last gate on a pair of qubit
+      // wires, i.e. both of its neighbors will be the final state node. In that
+      // case, we need to skip.
+      if (nAsVec[0] == nAsVec[1] && nAsVec[0] != graphView->order() - 1) {
+        // Check that the neighbor gate is indeed a CNOT gate, i.e. not a
+        // different 2-qubit gate.
+        if (program->getInstruction(nAsVec[0] - 1)->name() == "CNOT" &&
+            program->getInstruction(nAsVec[0] - 1)->bits() ==
+                program->getInstruction(node.get<std::size_t>("id") - 1)
+                    ->bits()) {
+          std::cout << "Cancel:\n";
+          std::cout << program->getInstruction(node.get<std::size_t>("id") - 1)->toString() << "\n";
+          std::cout << program->getInstruction(nAsVec[0] - 1)->toString() << "\n";
+          program->getInstruction(node.get<std::size_t>("id") - 1)->disable();
+          program->getInstruction(nAsVec[0] - 1)->disable();
+        }
+      }
+    }
+  }
+  program->removeDisabled();
+}
+
 void move_qaoa_evol_to_swap(
     std::shared_ptr<xacc::CompositeInstruction> program) {
   std::vector<int> consecutive_cnot_nodes;
@@ -230,7 +261,13 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
   // gate depth:
   // e.g. CX 1,2; CX 2,1; CX 1,2 <==> CX 2,1; CX 1,2; CX 2,1
   // this can help cancel a CX 2,1 if exists.
-  move_qaoa_evol_to_swap(program);
+  if (options.keyExists<bool>("qaoa-swap")) {
+    move_qaoa_evol_to_swap(program);
+  }
+  if (options.keyExists<bool>("cx-opt")) {
+    remove_cx_pairs(program);
+  }
+
   // Clean-up the temporary files.
   remove(in_fName.c_str());
 
