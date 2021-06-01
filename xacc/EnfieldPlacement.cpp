@@ -65,9 +65,9 @@ void remove_cx_pairs(std::shared_ptr<xacc::CompositeInstruction> program) {
             program->getInstruction(nAsVec[0] - 1)->bits() ==
                 program->getInstruction(node.get<std::size_t>("id") - 1)
                     ->bits()) {
-          std::cout << "Cancel:\n";
-          std::cout << program->getInstruction(node.get<std::size_t>("id") - 1)->toString() << "\n";
-          std::cout << program->getInstruction(nAsVec[0] - 1)->toString() << "\n";
+          // std::cout << "Cancel:\n";
+          // std::cout << program->getInstruction(node.get<std::size_t>("id") - 1)->toString() << "\n";
+          // std::cout << program->getInstruction(nAsVec[0] - 1)->toString() << "\n";
           program->getInstruction(node.get<std::size_t>("id") - 1)->disable();
           program->getInstruction(nAsVec[0] - 1)->disable();
         }
