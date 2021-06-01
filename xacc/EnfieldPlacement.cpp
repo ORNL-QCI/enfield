@@ -74,6 +74,42 @@ void remove_cx_pairs(std::shared_ptr<xacc::CompositeInstruction> program) {
       }
     }
   }
+
+  for (int i = 1; i < graphView->order() - 2; i++) {
+    auto node = graphView->getVertexProperties(i);
+    if (node.getString("name") == "CNOT" &&
+        program->getInstruction(node.get<std::size_t>("id") - 1)->isEnabled()) {
+      auto nAsVec1 = graphView->getNeighborList(node.get<std::size_t>("id"));
+      if ((nAsVec1[0] == nAsVec1[1] && nAsVec1[0] != graphView->order() - 1) &&
+          (program->getInstruction(nAsVec1[0] - 1)->name() == "CNOT") &&
+          program->getInstruction(nAsVec1[0] - 1)->isEnabled()) {
+        auto nAsVec2 = graphView->getNeighborList(nAsVec1[0]);
+        if ((nAsVec2[0] == nAsVec2[1] &&
+             nAsVec2[0] != graphView->order() - 1) &&
+            (program->getInstruction(nAsVec2[0] - 1)->name() == "CNOT") &&
+            program->getInstruction(nAsVec2[0] - 1)->isEnabled()) {
+          auto nAsVec3 = graphView->getNeighborList(nAsVec2[0]);
+          if ((nAsVec3[0] == nAsVec3[1] &&
+               nAsVec3[0] != graphView->order() - 1) &&
+              (program->getInstruction(nAsVec3[0] - 1)->name() == "CNOT") &&
+              program->getInstruction(nAsVec3[0] - 1)->isEnabled()) {
+            // 4 CNOT in a row:
+            auto cx1 = program->getInstruction(node.get<std::size_t>("id") - 1);
+            auto cx2 = program->getInstruction(nAsVec1[0] - 1);
+            auto cx3 = program->getInstruction(nAsVec2[0] - 1);
+            auto cx4 = program->getInstruction(nAsVec3[0] - 1);
+            assert(cx1->name() == "CNOT" && cx2->name() == "CNOT" &&
+                   cx3->name() == "CNOT" && cx4->name() == "CNOT");
+            assert(cx1->isEnabled() && cx2->isEnabled() && cx3->isEnabled() &&
+                   cx4->isEnabled());
+            cx1->disable();
+            cx4->disable();
+          }
+        }
+      }
+    }
+  }
+
   program->removeDisabled();
 }
 
