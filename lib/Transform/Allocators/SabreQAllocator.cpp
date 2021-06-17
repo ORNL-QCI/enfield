@@ -61,10 +61,15 @@ SabreQAllocator::allocateWithInitialMapping(const Mapping& initialMapping,
         it.next(i);
         ++reached[it.get(i)];
     }
-
+    int loop_count = 0;
+    const int MAX_TRIALS = 1000;
     while (true) {
         bool changed;
-
+        loop_count++;
+        // std::cout << "Loop: " << loop_count++ << "\n";
+        if (loop_count > MAX_TRIALS) {
+            throw "Failed";
+        }
         do {
             changed = false;
             std::set<CircuitNode::Ref> issueNodes;
@@ -244,6 +249,7 @@ Mapping SabreQAllocator::allocate(QModule::Ref qmod) {
 
     INF << "Starting SABRE Algorithm." << std::endl;
     for (uint32_t i = 0; i < mIterations; ++i) {
+      try {
         Timer t;
         initialM = mappingFinder.find(mArchGraph.get(), dummyDependencies);
 
@@ -265,6 +271,11 @@ Mapping SabreQAllocator::allocate(QModule::Ref qmod) {
         if (resultFinal.second < best.second) {
             best = MappingAndNSwaps(resultInit.first, resultFinal.second);
         }
+      } catch (...) {
+        std::cout << "Failed to map. Retry...\n";
+        mIterations++;
+        continue;
+      }
     }
 
     SwapPairs = "";

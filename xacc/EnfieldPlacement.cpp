@@ -252,8 +252,12 @@ void EnfieldPlacement::apply(std::shared_ptr<CompositeInstruction> program,
   }
 
   // Archname or Json
-  const bool useArchJson = (accelerator && !accelerator->getConnectivity().empty());
+  const bool useArchJson = (accelerator && !accelerator->getConnectivity().empty()) || options.stringExists("arch-json");
   const std::string archName = [&]() -> std::string {
+    if (options.stringExists("arch-json")) {
+      return options.getString("arch-json");
+    }
+
     if (useArchJson) {
       return connectivityToArchJson(accelerator->getConnectivity());
     }
